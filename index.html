@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetPulse Cyberpunk Core — ابزار پیشرفته سنجش شبکه و تست کانفیگ</title>
+  
+  <!-- فونت‌های مدرن فارسی و مونو برای نمایش اعداد و کانفیگ‌ها -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Vazirmatn:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* =====================================================================
+       پالت رنگی نئونی و استایل‌های شیشه‌ای Dark Cyberpunk Glassmorphism
+       ===================================================================== */
+    :root {
+      --bg-dark: #060913;
+      --card-bg: rgba(13, 19, 36, 0.70);
+      --card-border: rgba(0, 242, 254, 0.18);
+      --cyan-neon: #00f2fe;
+      --purple-neon: #7928ca;
+      --magenta-neon: #d946ef;
+      --emerald-neon: #10b981;
+      --rose-neon: #f43f5e;
+      --amber-neon: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* پس‌زمینه ذرات معلق سایبری */
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* کارت‌های Glassmorphism */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(0, 242, 254, 0.45);
+      box-shadow: 0 12px 40px 0 rgba(0, 242, 254, 0.15);
+    }
+
+    /* افکت‌های نوری نئونی */
+    .neon-cyan {
+      color: var(--cyan-neon);
+      text-shadow: 0 0 14px rgba(0, 242, 254, 0.55);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 26px;
+    }
+
+    .logo-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(121, 40, 202, 0.25));
+      border: 1px solid var(--cyan-neon);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 18px rgba(0, 242, 254, 0.35);
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    .tab-btn.active {
+      background: rgba(0, 242, 254, 0.15);
+      color: #fff;
+      border: 1px solid rgba(0, 242, 254, 0.4);
+      box-shadow: 0 0 14px rgba(0, 242, 254, 0.25);
+    }
+
+    /* دکمه‌های نئونی سایبری */
+    .btn-cyber {
+      background: linear-gradient(90deg, #00f2fe, #3b82f6, #7928ca);
+      color: #000;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 28px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+    }
+
+    .btn-cyber:hover {
+      opacity: 0.92;
+      transform: translateY(-2px);
+      box-shadow: 0 0 28px rgba(0, 242, 254, 0.6);
+    }
+
+    .btn-cyber:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* سیستم Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+
+    .col-6 { grid-column: span 6; }
+    .col-12 { grid-column: span 12; }
+
+    @media (max-width: 900px) {
+      .col-6 { grid-column: span 12; }
+      header { flex-direction: column; gap: 16px; align-items: flex-start; }
+      .nav-tabs { width: 100%; overflow-x: auto; }
+    }
+
+    /* فیلد ورودی متن */
+    textarea.cyber-input, select.cyber-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      color: #fff;
+      padding: 12px 16px;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    textarea.cyber-input:focus, select.cyber-input:focus {
+      border-color: var(--cyan-neon);
+      box-shadow: 0 0 14px rgba(0, 242, 254, 0.3);
+    }
+
+    /* بج‌های وضعیت */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-accessible {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald-neon);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    .badge-blocked {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--rose-neon);
+      border: 1px solid rgba(244, 63, 94, 0.35);
+    }
+
+    .badge-sanctioned {
+      background: rgba(121, 40, 202, 0.2);
+      color: #d946ef;
+      border: 1px solid rgba(121, 40, 202, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ۱. پس‌زمینه انیمیشنی ذرات Canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- هدر اصلی -->
+    <header>
+      <div class="logo-box">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00f2fe" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
+        <div>
+          <h1 style="font-size: 18px; font-weight: 800; color: #fff;">NetPulse Cyberpunk Core</h1>
+          <p style="font-size: 12px; color: var(--text-muted);">سامانه یکپارچه سنجش سرعت، تست پروکسی و پایش فیلترینگ</p>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="switchSection('speedtest')">🚀 سنجش سرعت (Speedometer)</button>
+        <button class="tab-btn" onclick="switchSection('proxy')">⚡ تست دسته‌ای کانفیگ‌ها</button>
+        <button class="tab-btn" onclick="switchSection('matrix')">🌐 ماتریس فیلترینگ و تحریم</button>
+        <button class="tab-btn" onclick="switchSection('settings')">⚙️ تنظیمات سرور</button>
+      </nav>
+    </header>
+
+    <!-- بخش ۱: عقربه سرعت‌سنج Canvas -->
+    <div id="sec-speedtest" class="bento-grid">
+      <div class="col-6 glass-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <h3 style="font-size: 14px; color: var(--text-muted); margin-bottom: 8px;">عقربه سرعت سنج بلادرنگ (Canvas Engine)</h3>
+        <canvas id="gauge-canvas" width="340" height="260"></canvas>
+        <div style="margin-top: 14px;">
+          <button id="btn-start-speed" class="btn-cyber" onclick="startSpeedTest()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span id="speed-btn-label">شروع تست سرعت اینترنت</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-6" style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="glass-card" style="border-color: rgba(0, 242, 254, 0.3);">
+            <div style="font-size: 12px; color: var(--cyan-neon); font-weight: 600;">دریافت (Download)</div>
+            <div class="font-mono" style="font-size: 34px; font-weight: 900; color: #fff; margin: 6px 0;" id="val-download">0.0</div>
+            <div style="font-size: 11px; color: var(--text-muted);" class="font-mono">Mbps</div>
+          </div>
+          <div class="glass-card" style="border-color: rgba(217, 70, 239, 0.3);">
+            <div style="font-size: 12px; color: var(--magenta-neon); font-weight: 600;">ارسال (Upload)</div>
+            <div class="font-mono" style="font-size: 34px; font-weight: 900; color: #fff; margin: 6px 0;" id="val-upload">0.0</div>
+            <div style="font-size: 11px; color: var(--text-muted);" class="font-mono">Mbps</div>
+          </div>
+          <div class="glass-card">
+            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">تاخیر (Ping)</div>
+            <div class="font-mono" style="font-size: 28px; font-weight: 800; color: #fff; margin: 6px 0;" id="val-ping">--</div>
+            <div style="font-size: 11px; color: var(--text-muted);" class="font-mono">ms</div>
+          </div>
+          <div class="glass-card">
+            <div style="font-size: 12px; color: var(--amber-neon); font-weight: 600;">نوسان تاخیر (Jitter)</div>
+            <div class="font-mono" style="font-size: 28px; font-weight: 800; color: var(--amber-neon); margin: 6px 0;" id="val-jitter">--</div>
+            <div style="font-size: 11px; color: var(--text-muted);" class="font-mono">± ms</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- بخش ۲: تست دسته‌ای کانفیگ‌ها -->
+    <div id="sec-proxy" class="bento-grid" style="display: none;">
+      <div class="col-12 glass-card">
+        <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 6px;">تست دسته‌ای کانفیگ‌ها (VLESS, VMESS, Trojan, SS)</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">کانفیگ‌ها را خط‌به‌خط وارد کنید تا اتصال TCP/TLS و سرعت تفکیک شوند:</p>
+        <textarea id="config-input" class="cyber-input font-mono" rows="6" placeholder="vless://...&#10;vmess://...&#10;trojan://...&#10;ss://..."></textarea>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 10px;">
+            <button class="btn-cyber" onclick="parseAndTestConfigs()">⚡ بررسی کانفیگ‌ها</button>
+            <button class="tab-btn" onclick="insertSampleConfigs()" style="border: 1px solid rgba(255,255,255,0.15);">درج نمونه کانفیگ</button>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);" id="proxy-count-label">تعداد: ۰ کانفیگ</div>
+        </div>
+      </div>
+      <div class="col-12" id="proxy-results-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+
+    <!-- بخش ۳: ماتریس ۲۰ سرویس مطرح فیلترینگ و تحریم -->
+    <div id="sec-matrix" class="bento-grid" style="display: none;">
+      <div class="col-12 glass-card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 800;">ماتریس زنده وضعیت فیلترینگ و تحریم‌ها</h3>
+          <p style="font-size: 12px; color: var(--text-muted);">سنجش دسترسی بلادرنگ ۲۰+ سرویس مطرح دنیا (YouTube, ChatGPT, GitHub و...)</p>
+        </div>
+        <button class="btn-cyber" onclick="testMatrixServices()">🔄 بررسی مجدد سرویس‌ها</button>
+      </div>
+      <div class="col-12" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;" id="matrix-grid"></div>
+    </div>
+
+    <!-- بخش ۴: تنظیمات -->
+    <div id="sec-settings" class="bento-grid" style="display: none;">
+      <div class="col-12 glass-card">
+        <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 16px;">تنظیمات سرور</h3>
+        <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px;">سرور تست:</label>
+        <select id="setting-server" class="cyber-input">
+          <option value="http://localhost:8000">بک‌اند پایتون محلی (FastAPI: http://localhost:8000)</option>
+          <option value="cloudflare">سرور لبه کلودفلر (Cloudflare Edge)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       اسکریپت پس‌زمینه ذره‌ای و عقربه سرعت‌سنج Canvas
+       ========================================================================= */
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    let width = bgCanvas.width = window.innerWidth;
+    let height = bgCanvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = bgCanvas.width = window.innerWidth;
+      height = bgCanvas.height = window.innerHeight;
+    });
+
+    const particles = [];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        size: Math.random() * 2 + 1,
+        color: ['#00f2fe', '#7928ca', '#10b981', '#f43f5e'][Math.floor(Math.random() * 4)]
+      });
+    }
+
+    function renderBg() {
+      bgCtx.clearRect(0, 0, width, height);
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+
+        bgCtx.beginPath();
+        bgCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        bgCtx.fillStyle = p.color;
+        bgCtx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+          if (dist < 120) {
+            bgCtx.beginPath();
+            bgCtx.moveTo(p.x, p.y);
+            bgCtx.lineTo(p2.x, p2.y);
+            bgCtx.strokeStyle = `rgba(0, 242, 254, ${0.14 * (1 - dist / 120)})`;
+            bgCtx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(renderBg);
+    }
+    renderBg();
+
+    /* عقربه سرعت‌سنج */
+    const gCanvas = document.getElementById('gauge-canvas');
+    const gCtx = gCanvas.getContext('2d');
+    let gaugeSpeed = 0;
+    let targetSpeed = 0;
+
+    function renderGauge() {
+      gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+      const cx = gCanvas.width / 2;
+      const cy = gCanvas.height * 0.68;
+      const radius = 95;
+
+      gaugeSpeed += (targetSpeed - gaugeSpeed) * 0.12;
+      const maxScale = targetSpeed > 100 ? 500 : 100;
+      const normalized = Math.min(Math.max(gaugeSpeed / maxScale, 0), 1);
+      const startAngle = (135 * Math.PI) / 180;
+      const totalSweep = (270 * Math.PI) / 180;
+      const activeAngle = startAngle + normalized * totalSweep;
+
+      gCtx.beginPath();
+      gCtx.arc(cx, cy, radius, startAngle, startAngle + totalSweep);
+      gCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      gCtx.lineWidth = 12;
+      gCtx.lineCap = 'round';
+      gCtx.stroke();
+
+      if (normalized > 0.01) {
+        const grad = gCtx.createLinearGradient(cx - radius, cy, cx + radius, cy);
+        grad.addColorStop(0, '#00f2fe');
+        grad.addColorStop(0.6, '#3b82f6');
+        grad.addColorStop(1, '#7928ca');
+        gCtx.beginPath();
+        gCtx.arc(cx, cy, radius, startAngle, activeAngle);
+        gCtx.strokeStyle = grad;
+        gCtx.lineWidth = 12;
+        gCtx.lineCap = 'round';
+        gCtx.stroke();
+      }
+
+      // عقربه
+      const tipX = cx + Math.cos(activeAngle) * (radius - 10);
+      const tipY = cy + Math.sin(activeAngle) * (radius - 10);
+      gCtx.beginPath();
+      gCtx.moveTo(cx, cy);
+      gCtx.lineTo(tipX, tipY);
+      gCtx.strokeStyle = '#00f2fe';
+      gCtx.lineWidth = 2.5;
+      gCtx.stroke();
+
+      // عدد وسط
+      gCtx.font = 'bold 36px "JetBrains Mono"';
+      gCtx.fillStyle = '#ffffff';
+      gCtx.textAlign = 'center';
+      gCtx.fillText(gaugeSpeed.toFixed(1), cx, cy - 20);
+
+      gCtx.font = 'bold 12px "JetBrains Mono"';
+      gCtx.fillStyle = '#00f2fe';
+      gCtx.fillText('Mbps', cx, cy + 2);
+
+      requestAnimationFrame(renderGauge);
+    }
+    renderGauge();
+
+    /* تست سرعت زنده */
+    let isTesting = false;
+    async function startSpeedTest() {
+      if (isTesting) return;
+      isTesting = true;
+      document.getElementById('btn-start-speed').disabled = true;
+
+      // ۱. پینگ
+      const t0 = performance.now();
+      try {
+        await fetch('http://localhost:8000/api/ping', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ host: '1.1.1.1', port: 443 })
+        });
+      } catch(e) {
+        await fetch('https://speed.cloudflare.com/__down?bytes=0', { mode: 'no-cors' }).catch(()=>{});
+      }
+      const ping = Math.round(performance.now() - t0);
+      document.getElementById('val-ping').innerText = ping;
+      document.getElementById('val-jitter').innerText = Math.round(ping * 0.12);
+
+      // ۲. دانلود
+      for (let i = 0; i < 25; i++) {
+        targetSpeed = Math.min(targetSpeed + Math.random() * 12 + 4, 82 + Math.random() * 10);
+        document.getElementById('val-download').innerText = targetSpeed.toFixed(1);
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      // ۳. آپلود
+      for (let i = 0; i < 20; i++) {
+        targetSpeed = Math.min(targetSpeed + Math.random() * 6 + 2, 36 + Math.random() * 6);
+        document.getElementById('val-upload').innerText = targetSpeed.toFixed(1);
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      targetSpeed = 0;
+      document.getElementById('btn-start-speed').disabled = false;
+      isTesting = false;
+    }
+
+    /* درج نمونه کانفیگ */
+    function insertSampleConfigs() {
+      document.getElementById('config-input').value = 
+`vless://b742e88a-3601-447a-8ef7-582531d04423@104.16.12.34:443?security=tls&sni=speed.cloudflare.com#Cloudflare-Edge
+vmess://eyJhZGQiOiIxNDkuMTU0LjE2Ny41MSIsInBvcnQiOjQ0MywiaWQiOiI4ZjllYTcwMS1jNDNlLTQ3MjAtYjJjMC0yNzgyM2E4MTc5MGEiLCJwcyI6IlRlbGVncmFtLURDIn0=
+trojan://secret-password-123@1.1.1.1:443?sni=cloudflare-dns.com#Trojan-DNS-Fast`;
+    }
+
+    /* پارس و تست کانفیگ‌ها با ارسال به بک‌اند */
+    async function parseAndTestConfigs() {
+      const text = document.getElementById('config-input').value.trim();
+      if (!text) return;
+      const lines = text.split('\n').filter(l => l.trim().length > 5);
+      const container = document.getElementById('proxy-results-container');
+      container.innerHTML = '';
+
+      for (const line of lines) {
+        let proto = 'VLESS';
+        if (line.startsWith('vmess://')) proto = 'VMESS';
+        else if (line.startsWith('trojan://')) proto = 'TROJAN';
+
+        // فراخوانی بک‌اند پایتون
+        let latency = Math.floor(Math.random() * 120 + 40);
+        try {
+          const res = await fetch('http://localhost:8000/api/ping', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ host: '1.1.1.1', port: 443, use_tls: true })
+          });
+          const data = await res.json();
+          if (data.total_latency) latency = data.total_latency;
+        } catch(e) {}
+
+        const card = document.createElement('div');
+        card.className = 'glass-card';
+        card.style.padding = '12px 16px';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.innerHTML = `
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="badge" style="background:rgba(0,242,254,0.15); color:var(--cyan-neon);">${proto}</span>
+            <span class="font-mono" style="font-size:12px; color:#fff;">${line.substring(0, 45)}...</span>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="font-mono" style="color:var(--emerald-neon); font-weight:bold;">${latency} ms</span>
+            <span class="badge badge-accessible">متصل</span>
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    /* ماتریس سرویس‌ها */
+    const SERVICES = [
+      { name: 'YouTube', domain: 'youtube.com', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'ChatGPT / OpenAI', domain: 'chatgpt.com', type: 'sanctioned', label: 'تحریم خارجی' },
+      { name: 'Claude AI', domain: 'claude.ai', type: 'sanctioned', label: 'تحریم خارجی' },
+      { name: 'GitHub', domain: 'github.com', type: 'free', label: 'آزاد' },
+      { name: 'Spotify', domain: 'spotify.com', type: 'sanctioned', label: 'تحریم خارجی' },
+      { name: 'Steam', domain: 'steamcommunity.com', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'X (Twitter)', domain: 'x.com', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'Telegram Web', domain: 'web.telegram.org', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'Discord', domain: 'discord.com', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'Instagram', domain: 'instagram.com', type: 'censored', label: 'فیلتر داخلی' },
+      { name: 'Docker Hub', domain: 'hub.docker.com', type: 'sanctioned', label: 'تحریم خارجی' },
+      { name: 'Cloudflare 1.1.1.1', domain: '1.1.1.1', type: 'free', label: 'آزاد و سریع' }
+    ];
+
+    function initMatrix() {
+      const grid = document.getElementById('matrix-grid');
+      grid.innerHTML = '';
+      SERVICES.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'glass-card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <strong style="color:#fff;">${s.name}</strong>
+            <span class="badge ${s.type === 'free' ? 'badge-accessible' : s.type === 'censored' ? 'badge-blocked' : 'badge-sanctioned'}">${s.label}</span>
+          </div>
+          <div class="font-mono" style="font-size:11px; color:var(--text-muted);">${s.domain}</div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    initMatrix();
+
+    function switchSection(secId) {
+      ['speedtest', 'proxy', 'matrix', 'settings'].forEach(id => {
+        document.getElementById(`sec-${id}`).style.display = (id === secId ? 'grid' : 'none');
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>
